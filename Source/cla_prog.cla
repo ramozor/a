@@ -1,0 +1,236 @@
+/*
+ * cla_prog.cla
+ *
+ *  Created on: Jan 20, 2025
+ *      Author: mvo
+ */
+
+#include "F2837xD_Cla_defines.h"
+#include "F28x_Project.h"
+#include <stdint.h>
+#include "Defines.h"
+#include "cla_prog.h"
+
+#pragma DATA_SECTION(ADC_filt,"Cla1ToCpuMsgRAM");
+volatile ADC_filt_t ADC_filt;
+
+#if (ALLOW_VOLT_MOV_MEAN == 1)
+uint32_t volt_mov_mean[4][4];
+#pragma DATA_SECTION(mov_mean_index, "CLADataLS0")
+uint16_t mov_mean_index;
+#endif
+uint16_t ADC_history[8][ADC_PWM_RAT];
+
+
+
+#if (TRIMMED_MEAN_ADC == 1)
+#pragma CODE_SECTION(update_min_max, "Cla1Prog")
+void update_min_max (uint16_t index, uint16_t var_index)
+{
+    if ((ADC_history[var_index][index]) < ADC_filt.min1[var_index]) {                                                
+        ADC_filt.min2[var_index] = ADC_filt.min1[var_index];                                            
+        ADC_filt.min1[var_index] = (ADC_history[var_index][index]);                                                  
+    } else if ((ADC_history[var_index][index]) < ADC_filt.min2[var_index]) {                                         
+        ADC_filt.min2[var_index] = (ADC_history[var_index][index]);                                                  
+    }                                                                         
+    if ((ADC_history[var_index][index]) > ADC_filt.max1[var_index]) {                                                
+        ADC_filt.max2[var_index] = ADC_filt.max1[var_index];                                            
+        ADC_filt.max1[var_index] = (ADC_history[var_index][index]);                                                  
+    } else if ((ADC_history[var_index][index]) > ADC_filt.max2[var_index]) {                                         
+        ADC_filt.max2[var_index] = (ADC_history[var_index][index]);                                                  
+    }
+    
+}
+#endif
+
+//static uint16_t i_old;
+
+static uint32_t mov_mean(uint32_t* val_array)
+{
+    return 0.25*(val_array[0] + val_array[1] + val_array[2] + val_array[3]);
+    //return 0.25*(val_array[0] + val_array[1] + val_array[2] + val_array[3] +
+      //      val_array[4] + val_array[5] + val_array[6] + val_array[7]);
+}
+
+// __interrupt void Cla1Task6 (void)
+// {
+//     uint16_t i1;
+//     for (i1 = 0; i1 < 8; i1++) {
+//         ADC_filt.sum[i1] = 0;
+        
+//     }
+//     ADC_filt.i_sample = 0;
+// }
+
+
+__interrupt void Cla1Task7 ( void )
+{
+    /*WORKING BY JUST CHANGING PLACES DO NOT TOUCH
+    // Currents
+    ADC_filt.sum[ADC_CELL2_CUR_INDEX] -= ADC_history[ADC_CELL2_CUR_INDEX][ADC_filt.i_sample];
+    ADC_history[ADC_CELL2_CUR_INDEX][ADC_filt.i_sample] =  ADC_CELL2_CUR_RES;
+    ADC_filt.sum[ADC_CELL2_CUR_INDEX] += ADC_CELL2_CUR_RES;
+
+    ADC_filt.sum[ADC_CELL1_CUR_INDEX] -= ADC_history[ADC_CELL1_CUR_INDEX][ADC_filt.i_sample];
+    ADC_history[ADC_CELL1_CUR_INDEX][ADC_filt.i_sample] =  ADC_CELL1_CUR_RES;
+    ADC_filt.sum[ADC_CELL1_CUR_INDEX] += ADC_CELL1_CUR_RES;
+
+    ADC_filt.sum[ADC_CELL3_CUR_INDEX] -= ADC_history[ADC_CELL3_CUR_INDEX][ADC_filt.i_sample];
+    ADC_history[ADC_CELL3_CUR_INDEX][ADC_filt.i_sample] =  ADC_CELL3_CUR_RES;
+    ADC_filt.sum[ADC_CELL3_CUR_INDEX] += ADC_CELL3_CUR_RES;
+
+    ADC_filt.sum[ADC_CELL4_CUR_INDEX] -= ADC_history[ADC_CELL4_CUR_INDEX][ADC_filt.i_sample];
+    ADC_history[ADC_CELL4_CUR_INDEX][ADC_filt.i_sample] =  ADC_CELL4_CUR_RES;
+    ADC_filt.sum[ADC_CELL4_CUR_INDEX] += ADC_CELL4_CUR_RES;
+
+    ADC_filt.sum[ADC_CELL1_VOLT_INDEX] -= ADC_history[ADC_CELL1_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_history[ADC_CELL1_VOLT_INDEX][ADC_filt.i_sample] =  ADC_CELL1_VOLT_RES;
+    ADC_filt.sum[ADC_CELL1_VOLT_INDEX] += ADC_CELL1_VOLT_RES;
+
+    ADC_filt.sum[ADC_CELL2_VOLT_INDEX] -= ADC_history[ADC_CELL2_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_history[ADC_CELL2_VOLT_INDEX][ADC_filt.i_sample] =  ADC_CELL2_VOLT_RES;
+    ADC_filt.sum[ADC_CELL2_VOLT_INDEX] += ADC_CELL2_VOLT_RES;
+
+    ADC_filt.sum[ADC_CELL3_VOLT_INDEX] -= ADC_history[ADC_CELL3_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_history[ADC_CELL3_VOLT_INDEX][ADC_filt.i_sample] =  ADC_CELL3_VOLT_RES;
+    ADC_filt.sum[ADC_CELL3_VOLT_INDEX] += ADC_CELL3_VOLT_RES;
+
+    ADC_filt.sum[ADC_CELL4_VOLT_INDEX] -= ADC_history[ADC_CELL4_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_history[ADC_CELL4_VOLT_INDEX][ADC_filt.i_sample] =  ADC_CELL4_VOLT_RES;
+    ADC_filt.sum[ADC_CELL4_VOLT_INDEX] += ADC_CELL4_VOLT_RES;
+    */
+
+    /*Esto es lo que me pidio Martin*/
+    //First only - substraction
+    //uint16_t i;
+
+    //ADC_filt.i_sample = 4;
+    
+    
+    
+    ADC_filt.sum[ADC_CELL2_CUR_INDEX] -= ADC_history[ADC_CELL2_CUR_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL1_CUR_INDEX] -= ADC_history[ADC_CELL1_CUR_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL3_CUR_INDEX] -= ADC_history[ADC_CELL3_CUR_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL4_CUR_INDEX] -= ADC_history[ADC_CELL4_CUR_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL1_VOLT_INDEX] -= ADC_history[ADC_CELL1_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL2_VOLT_INDEX] -= ADC_history[ADC_CELL2_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL3_VOLT_INDEX] -= ADC_history[ADC_CELL3_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL4_VOLT_INDEX] -= ADC_history[ADC_CELL4_VOLT_INDEX][ADC_filt.i_sample];
+    //Second only history
+    ADC_history[ADC_CELL2_CUR_INDEX][ADC_filt.i_sample] =  ADC_CELL2_CUR_RES;
+    ADC_history[ADC_CELL1_CUR_INDEX][ADC_filt.i_sample] =  ADC_CELL1_CUR_RES;
+    ADC_history[ADC_CELL3_CUR_INDEX][ADC_filt.i_sample] =  ADC_CELL3_CUR_RES;
+    ADC_history[ADC_CELL4_CUR_INDEX][ADC_filt.i_sample] =  ADC_CELL4_CUR_RES;
+    ADC_history[ADC_CELL1_VOLT_INDEX][ADC_filt.i_sample] =  ADC_CELL1_VOLT_RES;
+    ADC_history[ADC_CELL2_VOLT_INDEX][ADC_filt.i_sample] =  ADC_CELL2_VOLT_RES;
+    ADC_history[ADC_CELL3_VOLT_INDEX][ADC_filt.i_sample] =  ADC_CELL3_VOLT_RES;
+    ADC_history[ADC_CELL4_VOLT_INDEX][ADC_filt.i_sample] =  ADC_CELL4_VOLT_RES;
+    //Then sum but change to sum the one in history not the one measured
+    ADC_filt.sum[ADC_CELL2_CUR_INDEX] += ADC_history[ADC_CELL2_CUR_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL1_CUR_INDEX] += ADC_history[ADC_CELL1_CUR_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL3_CUR_INDEX] += ADC_history[ADC_CELL3_CUR_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL4_CUR_INDEX] += ADC_history[ADC_CELL4_CUR_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL1_VOLT_INDEX] += ADC_history[ADC_CELL1_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL2_VOLT_INDEX] += ADC_history[ADC_CELL2_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL3_VOLT_INDEX] += ADC_history[ADC_CELL3_VOLT_INDEX][ADC_filt.i_sample];
+    ADC_filt.sum[ADC_CELL4_VOLT_INDEX] += ADC_history[ADC_CELL4_VOLT_INDEX][ADC_filt.i_sample];
+    
+
+    #if (TRIMMED_MEAN_ADC == 1)  
+  
+    for (i = 0; i < 10; i++) {
+
+    //      if ((ADC_history[ADC_CELL2_CUR_INDEX][i]) < min1[ADC_CELL2_CUR_INDEX]) {                                                \
+    //      min2[ADC_CELL2_CUR_INDEX] = min1[ADC_CELL2_CUR_INDEX];                                            \
+    //      min1[ADC_CELL2_CUR_INDEX] = ADC_history[ADC_CELL2_CUR_INDEX][i];                                                  \
+    // } else if ((ADC_history[ADC_CELL2_CUR_INDEX][i]) < min2[ADC_CELL2_CUR_INDEX]) {                                         \
+    //     min2[ADC_CELL2_CUR_INDEX] = (ADC_history[ADC_CELL2_CUR_INDEX][i]);                                                  \
+    // }                                                                         \
+    // if ((ADC_history[ADC_CELL2_CUR_INDEX][i]) > max1[ADC_CELL2_CUR_INDEX]) {                                                \
+    //     max2[ADC_CELL2_CUR_INDEX] = max1[ADC_CELL2_CUR_INDEX];                                            \
+    //     max1[ADC_CELL2_CUR_INDEX] = (ADC_history[ADC_CELL2_CUR_INDEX][i]);                                                  \
+    // } else if ((ADC_history[ADC_CELL2_CUR_INDEX][i]) > max2[ADC_CELL2_CUR_INDEX]) {                                         \
+    //     max2[ADC_CELL2_CUR_INDEX] = (ADC_history[ADC_CELL2_CUR_INDEX][i]);                                                  \
+    // }
+    
+        //update_min_max(i, ADC_CELL2_CUR_INDEX);
+        //update_min_max(i, ADC_CELL1_CUR_INDEX);
+        //update_min_max(i, ADC_CELL3_CUR_INDEX);
+        //update_min_max(i, ADC_CELL4_CUR_INDEX);
+        update_min_max(i, ADC_CELL1_VOLT_INDEX);
+        update_min_max(i, ADC_CELL2_VOLT_INDEX);
+        //update_min_max(i, ADC_CELL3_VOLT_INDEX);
+        update_min_max(i, ADC_CELL4_VOLT_INDEX);
+
+    } 
+#endif
+
+
+    ADC_filt.i_sample++;
+
+    if (ADC_filt.i_sample == ADC_PWM_RAT/2) // Ensure deterministic sampling -- average is updated only in the middle or the first sample before middle (for the case ADC_PWM_RAT/2 is not integer)
+    {
+        #if (TRIMMED_MEAN_ADC !=1)
+        ADC_filt.avg[ADC_CELL1_CUR_INDEX] = (ADC_filt.sum[ADC_CELL1_CUR_INDEX]) * (1./ADC_PWM_RAT);
+        ADC_filt.avg[ADC_CELL2_CUR_INDEX] = (ADC_filt.sum[ADC_CELL2_CUR_INDEX]) * (1./ADC_PWM_RAT);
+        ADC_filt.avg[ADC_CELL3_CUR_INDEX] = (ADC_filt.sum[ADC_CELL3_CUR_INDEX]) * (1./ADC_PWM_RAT);
+        ADC_filt.avg[ADC_CELL4_CUR_INDEX] = (ADC_filt.sum[ADC_CELL4_CUR_INDEX]) * (1./ADC_PWM_RAT);
+        #else
+        ADC_filt.avg[ADC_CELL1_CUR_INDEX] = (ADC_filt.sum[ADC_CELL1_CUR_INDEX] - ADC_filt.min1[ADC_CELL1_CUR_INDEX] - ADC_filt.min2[ADC_CELL1_CUR_INDEX] - ADC_filt.max1[ADC_CELL1_CUR_INDEX] - ADC_filt.max2[ADC_CELL1_CUR_INDEX]) * (1. / (ADC_PWM_RAT));
+        ADC_filt.avg[ADC_CELL2_CUR_INDEX] = (ADC_filt.sum[ADC_CELL2_CUR_INDEX] - ADC_filt.min1[ADC_CELL2_CUR_INDEX] - ADC_filt.min2[ADC_CELL2_CUR_INDEX] - ADC_filt.max1[ADC_CELL2_CUR_INDEX] - ADC_filt.max2[ADC_CELL2_CUR_INDEX]) * (1. / (ADC_PWM_RAT));
+        ADC_filt.avg[ADC_CELL3_CUR_INDEX] = (ADC_filt.sum[ADC_CELL3_CUR_INDEX] - ADC_filt.min1[ADC_CELL3_CUR_INDEX] - ADC_filt.min2[ADC_CELL3_CUR_INDEX] - ADC_filt.max1[ADC_CELL3_CUR_INDEX] - ADC_filt.max2[ADC_CELL3_CUR_INDEX]) * (1. / (ADC_PWM_RAT));
+        ADC_filt.avg[ADC_CELL4_CUR_INDEX] = (ADC_filt.sum[ADC_CELL4_CUR_INDEX] - ADC_filt.min1[ADC_CELL4_CUR_INDEX] - ADC_filt.min2[ADC_CELL4_CUR_INDEX] - ADC_filt.max1[ADC_CELL4_CUR_INDEX] - ADC_filt.max2[ADC_CELL4_CUR_INDEX]) * (1. / (ADC_PWM_RAT));
+        #endif
+        
+#if (ALLOW_VOLT_MOV_MEAN != 1)
+#if (TRIMMED_MEAN_ADC !=1)
+        ADC_filt.avg[ADC_CELL1_VOLT_INDEX] = ADC_filt.sum[ADC_CELL1_VOLT_INDEX] * (1./ADC_PWM_RAT);
+        ADC_filt.avg[ADC_CELL2_VOLT_INDEX] = ADC_filt.sum[ADC_CELL2_VOLT_INDEX] * (1./ADC_PWM_RAT);
+        ADC_filt.avg[ADC_CELL3_VOLT_INDEX] = ADC_filt.sum[ADC_CELL3_VOLT_INDEX] * (1./ADC_PWM_RAT);
+        ADC_filt.avg[ADC_CELL4_VOLT_INDEX] = ADC_filt.sum[ADC_CELL4_VOLT_INDEX] * (1./ADC_PWM_RAT);
+#else
+        ADC_filt.avg[ADC_CELL1_VOLT_INDEX] = (ADC_filt.sum[ADC_CELL1_VOLT_INDEX] - ADC_filt.min1[ADC_CELL1_VOLT_INDEX] - ADC_filt.min2[ADC_CELL1_VOLT_INDEX] - ADC_filt.max1[ADC_CELL1_VOLT_INDEX] - ADC_filt.max2[ADC_CELL1_VOLT_INDEX]) * (1. / (ADC_PWM_RAT - 4));
+        ADC_filt.avg[ADC_CELL2_VOLT_INDEX] = (ADC_filt.sum[ADC_CELL2_VOLT_INDEX] - ADC_filt.min1[ADC_CELL2_VOLT_INDEX] - ADC_filt.min2[ADC_CELL2_VOLT_INDEX] - ADC_filt.max1[ADC_CELL2_VOLT_INDEX] - ADC_filt.max2[ADC_CELL2_VOLT_INDEX]) * (1. / (ADC_PWM_RAT - 4));
+        ADC_filt.avg[ADC_CELL3_VOLT_INDEX] = (ADC_filt.sum[ADC_CELL3_VOLT_INDEX] - ADC_filt.min1[ADC_CELL3_VOLT_INDEX] - ADC_filt.min2[ADC_CELL3_VOLT_INDEX] - ADC_filt.max1[ADC_CELL3_VOLT_INDEX] - ADC_filt.max2[ADC_CELL3_VOLT_INDEX]) * (1. / (ADC_PWM_RAT));
+        ADC_filt.avg[ADC_CELL4_VOLT_INDEX] = (ADC_filt.sum[ADC_CELL4_VOLT_INDEX] - ADC_filt.min1[ADC_CELL4_VOLT_INDEX] - ADC_filt.min2[ADC_CELL4_VOLT_INDEX] - ADC_filt.max1[ADC_CELL4_VOLT_INDEX] - ADC_filt.max2[ADC_CELL4_VOLT_INDEX]) * (1. / (ADC_PWM_RAT - 4));
+#endif // #if (TRIMMED_MEAN_ADC !=1)
+#else
+        // Make sure that index is not pointing outside the array
+        if (mov_mean_index >= 4)
+        {
+            mov_mean_index = 0;
+        }
+        #if (TRIMMED_MEAN_ADC !=1)
+        volt_mov_mean[0][mov_mean_index] = ADC_filt.sum[ADC_CELL1_VOLT_INDEX] * (1./ADC_PWM_RAT);
+        volt_mov_mean[1][mov_mean_index] = ADC_filt.sum[ADC_CELL2_VOLT_INDEX] * (1./ADC_PWM_RAT);
+        volt_mov_mean[2][mov_mean_index] = ADC_filt.sum[ADC_CELL3_VOLT_INDEX] * (1./ADC_PWM_RAT);
+        volt_mov_mean[3][mov_mean_index] = ADC_filt.sum[ADC_CELL4_VOLT_INDEX] * (1./ADC_PWM_RAT);
+        #else
+        volt_mov_mean[0][mov_mean_index] = (ADC_filt.sum[ADC_CELL1_VOLT_INDEX] - ADC_filt.min1[ADC_CELL1_VOLT_INDEX] - ADC_filt.min2[ADC_CELL1_VOLT_INDEX] - ADC_filt.max1[ADC_CELL1_VOLT_INDEX] - ADC_filt.max2[ADC_CELL1_VOLT_INDEX]) * (1. / (ADC_PWM_RAT - 4));
+        volt_mov_mean[1][mov_mean_index] = (ADC_filt.sum[ADC_CELL2_VOLT_INDEX] - ADC_filt.min1[ADC_CELL2_VOLT_INDEX] - ADC_filt.min2[ADC_CELL2_VOLT_INDEX] - ADC_filt.max1[ADC_CELL2_VOLT_INDEX] - ADC_filt.max2[ADC_CELL2_VOLT_INDEX]) * (1. / (ADC_PWM_RAT - 4));
+        volt_mov_mean[2][mov_mean_index] = (ADC_filt.sum[ADC_CELL3_VOLT_INDEX] - ADC_filt.min1[ADC_CELL3_VOLT_INDEX] - ADC_filt.min2[ADC_CELL3_VOLT_INDEX] - ADC_filt.max1[ADC_CELL3_VOLT_INDEX] - ADC_filt.max2[ADC_CELL3_VOLT_INDEX]) * (1. / (ADC_PWM_RAT));
+        volt_mov_mean[3][mov_mean_index] = (ADC_filt.sum[ADC_CELL4_VOLT_INDEX] - ADC_filt.min1[ADC_CELL4_VOLT_INDEX] - ADC_filt.min2[ADC_CELL4_VOLT_INDEX] - ADC_filt.max1[ADC_CELL4_VOLT_INDEX] - ADC_filt.max2[ADC_CELL4_VOLT_INDEX]) * (1. / (ADC_PWM_RAT - 4));
+        #endif
+        ADC_filt.avg[ADC_CELL1_VOLT_INDEX] = mov_mean(&volt_mov_mean[0][0]);
+        ADC_filt.avg[ADC_CELL2_VOLT_INDEX] = mov_mean(&volt_mov_mean[1][0]);
+        ADC_filt.avg[ADC_CELL3_VOLT_INDEX] = mov_mean(&volt_mov_mean[2][0]);
+        ADC_filt.avg[ADC_CELL4_VOLT_INDEX] = mov_mean(&volt_mov_mean[3][0]);
+        mov_mean_index++;
+
+
+#endif
+    }
+    if (ADC_filt.i_sample == ADC_PWM_RAT)
+    {
+        ADC_filt.i_sample = 0;
+    }
+
+    //EPWM_ADC_CLA_TIMING_MODULE.ETCLR.bit.INT = 1;
+
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+
+
+}
+
+

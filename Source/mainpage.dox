@@ -1,0 +1,131 @@
+/**
+ * @mainpage UHEART_CPU1 Documentation
+ * 
+ * @section intro_sec Introduction
+ * 
+ *
+ * @section features_sec Features
+ * 
+ * 
+ * @section usage_sec Usage Example
+ * 
+ * Here's a simple usage example:
+ 
+ * 
+ * @section contact_sec Contact
+ * 
+ * For more information, contact:
+ * - Author: Martin Votava
+ * - Co-Author: Morteza Dezhbord
+ * @section pwm_gpio_mapping PWM to GPIO Mapping
+ * 
+ * This section maps each PWM signal to its corresponding GPIO pin and provides additional 
+ * details about its connection or function.
+ * 
+ * <table>
+ * <tr><th>Tx</th><th>PWM Signal</th><th>GPIO Pin</th><th>Connection/Function</th></tr>
+ * <tr><td>TxA</td><td>PWM1  (PWM1A)</td><td>GPIO0</td><td>Not connected (NC)</td></tr>
+ * <tr><td>TxB</td><td>PWM2  (PWM1B)</td><td>GPIO1</td><td>NC</td></tr>
+ * <tr><td>TxC</td><td>PWM3  (PWM2A)</td><td>GPIO2</td><td>Isolation switch cell 2</td></tr>
+ * <tr><td>TxD</td><td>PWM4  (PWM2B)</td><td>GPIO3</td><td>Isolation switch cell 1</td></tr>
+ * <tr><td>TxE</td><td>PWM5  (PWM3A)</td><td>GPIO4</td><td>Cell 2 PWMA_H</td></tr>
+ * <tr><td>TxF</td><td>PWM6  (PWM3B)</td><td>GPIO5</td><td>Cell 2 PWMA_L</td></tr>
+ * <tr><td>TxG</td><td>PWM7  (PWM4A)</td><td>GPIO6</td><td>Cell 1 PWMA_H</td></tr>
+ * <tr><td>TxH</td><td>PWM8  (PWM4B)</td><td>GPIO7</td><td>Cell 1 PWMA_L</td></tr>
+ * <tr><td>TxI</td><td>PWM9  (PWM5A)</td><td>GPIO8</td><td>Cell 4 PWMA_H</td></tr>
+ * <tr><td>TxJ</td><td>PWM10 (PWM5B)</td><td>GPIO9</td><td>Cell 4 PWMA_L</td></tr>
+ * <tr><td>TxK</td><td>PWM11 (PWM6A)</td><td>GPIO10</td><td>Cell 3 PWMA_H</td></tr>
+ * <tr><td>TxL</td><td>PWM12 (PWM6B)</td><td>GPIO11</td><td>Cell 3 PWMA_L</td></tr>
+ * <tr><td>TxM</td><td>PWM13 (PWM7A)</td><td>GPIO12</td><td>Isolation switch cell 4</td></tr>
+ * <tr><td>TxN</td><td>PWM14 (PWM7B)</td><td>GPIO13</td><td>Isolation switch cell 3</td></tr>
+ * <tr><td>TxO</td><td>PWM15 (PWM8A)</td><td>GPIO14</td><td>-</td></tr>
+ * <tr><td>TxP</td><td>PWM16 (PWM8B)</td><td>GPIO15</td><td>-</td></tr>
+ * </table>
+ * 
+ * @section enable_outputs Enable Output of Tx
+ * 
+ * This table lists the enable outputs for each Tx, which are controlled via GPIO pins.
+ * 
+ * <table>
+ * <tr><th>EN#</th><th>Controlled Signals</th><th>GPIO Pin</th></tr>
+ * <tr><td>EN1</td><td>ENABLE1, ENABLE2</td><td>GPIO84</td></tr>
+ * <tr><td>EN2</td><td>ENABLE3, ENABLE4</td><td>GPIO85</td></tr>
+ * <tr><td>EN3</td><td>ENABLE5, ENABLE6</td><td>GPIO88</td></tr>
+ * <tr><td>EN4</td><td>ENABLE7, ENABLE8</td><td>GPIO89</td></tr>
+ * <tr><td>EN5</td><td>ENABLE9, ENABLE10</td><td>GPIO90</td></tr>
+ * <tr><td>EN6</td><td>ENABLE11, ENABLE12</td><td>GPIO91</td></tr>
+ * <tr><td>EN7</td><td>ENABLE13, ENABLE14</td><td>GPIO92</td></tr>
+ * <tr><td>EN8</td><td>ENABLE15, ENABLE16</td><td>GPIO93</td></tr>
+ * </table>
+ 
+  * @section for NC GPIOs
+ 
+ This section maps each PWM signal to its corresponding GPIO pin which are not connected.
+ 
+ 
+ * <table>
+ * <tr><th>Tx</th><th>PWM Signal</th><th>GPIO Pin</th><th>Connection/Function</th></tr>
+ * <tr><td>TxA</td><td>PWM1  (PWM1A)</td><td>GPIO0</td><td>Not connected (NC)</td></tr>
+ * <tr><td>TxB</td><td>PWM2  (PWM1B)</td><td>GPIO1</td><td>Not connected (NC)</td></tr>
+ * <tr><td>TxO</td><td>PWM15 (PWM8A)</td><td>GPIO14</td><td>Not connected (NC)</td></tr>
+ * <tr><td>TxP</td><td>PWM16 (PWM8B)</td><td>GPIO15</td><td>Not connected (NC)</td></tr>
+ * </table>
+ * 
+ * @section fault_signals Receive - Possible Fault Signals
+ * 
+ * This table describes the received fault signals, which are associated with specific PWM channels and GPIO pins.
+ * 
+
+ * <table>
+ * <tr><th>Rx</th><th>DataOut</th><th>PWM Signal</th><th>ePWM</th><th>Cell</th><th>GPIO Pin</th></tr>
+ * <tr><td>RxA</td><td>DataOut1</td><td>PWM9A</td><td>ePWM4</td><td>Cell1</td><td>inverted GPIO16</td></tr>
+ * <tr><td>RxB</td><td>DataOut2</td><td>PWM10A</td><td>ePWM3</td><td>Cell2</td><td>inverted GPIO18</td></tr>
+ * <tr><td>RxC</td><td>DataOut3</td><td>PWM11A</td><td>NC</td><td>NC</td><td>GPIO20</td></tr>
+ * <tr><td>RxD</td><td>DataOut4</td><td>PWM11B</td><td>ePWM5</td><td>Cell4</td><td>inverted GPIO21</td></tr>
+ * <tr><td>RxE</td><td>DataOut5</td><td>PWM12A</td><td>ePWM6</td><td>Cell3</td><td>inverted GPIO22</td></tr>
+ * <tr><td>RxF</td><td>DataOut6</td><td>PWM12B</td><td>NC</td><td>NC</td><td>GPIO23</td></tr>
+ * </table>
+ * 
+ 
+ 
+ * @section power_stage_configuration Configuration at CELL -> Power Stage
+ * 
+ * This section describes the PWM control and fault signals for the power stage configuration.
+ * 
+ * - **PWM Control**:
+ *     - `PWMAH_OI1`: PWM leg A, upper switch - leftmost RX
+ *     - `PWMAL_OI2`: PWM leg A, lower switch - second from the left RX
+ *     - `PWMBH_OI3`: PWM leg B, upper switch - second from the right RX
+ *     - `PWMBL_OI4`: PWM leg B, lower switch - rightmost RX
+ * 
+ * - **Fault Signals**:
+ *     - **OFault1, 2, 3**: Fault signals merged next to `PWMBL_OI4` (rightmost).
+ *     - Fault Rx is also included in the merged fault signal from other cells or system parts.
+ *     - **InFault1, 2**: Fault input from other parts of the system.
+ * 
+ * - **Enable PWM**:
+ *     - `EN_OI5`: Enable PWM, next to `OFault3`.
+ * 
+ * - **Isolation Switch**:
+ *     - `IN_ISW`: Isolation switch, isolates the winding, located next to `EN_OI5`.
+ *
+ * @section adc_sensor_mapping ADC and Sensor Mapping for Cells
+ * 
+ * This section provides details on the connections (CONN1-4) for each cell, the current and voltage sensor mapping, 
+ * and the related ADC inputs. It also describes the filtering process and sampling rates.
+ * 
+ * - **Signal Filtering**: The signal is filtered using LEM + OpAmp + anti-aliasing filters, where the OpAmp introduces a significant delay of 2 microseconds.
+ * - **ADC Sampling Rate**: The maximum sample rate of the ADC is 1.1 MSamples/second. Since ADCA has 5 active channels, the effective sample rate is reduced to 220 kSamples/second per channel.
+ * 
+ * <table>
+ * <tr><th>Cell</th><th>Connector</th><th>Sensor</th><th>Pin</th><th>ADC Input</th></tr>
+ * <tr><td>Cell 1</td><td>CONN1</td><td>Current sensor</td><td>7</td><td>ADCIn1 : ADCCIN_C4</td></tr>
+ * <tr><td>Cell 1</td><td>CONN1</td><td>Voltage sensor</td><td>8</td><td>ADCIn2 : ADCCIN_C3</td></tr>
+ * <tr><td>Cell 2</td><td>CONN2</td><td>Current sensor</td><td>7</td><td>ADCIn3 : ADCCIN_C2</td></tr>
+ * <tr><td>Cell 2</td><td>CONN2</td><td>Voltage sensor</td><td>8</td><td>ADCIn4 : ADCCIN_A5</td></tr>
+ * <tr><td>Cell 3</td><td>CONN3</td><td>Current sensor</td><td>7</td><td>ADCIn5 : ADCCIN_A4</td></tr>
+ * <tr><td>Cell 3</td><td>CONN3</td><td>Voltage sensor</td><td>8</td><td>ADCIn6 : ADCCIN_A3</td></tr>
+ * <tr><td>Cell 4</td><td>CONN4</td><td>Current sensor</td><td>7</td><td>ADCIn7 : ADCCIN_A2</td></tr>
+ * <tr><td>Cell 4</td><td>CONN4</td><td>Voltage sensor</td><td>8</td><td>ADCIn8 : ADCCIN_A1</td></tr>
+ * </table> 
+ */

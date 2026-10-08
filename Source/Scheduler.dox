@@ -1,0 +1,117 @@
+/**
+ * @file scheduler.dox
+ * @brief Detailed documentation for the `scheduler` module.
+ * @anchor scheduler_docs
+ *
+ * @details
+ * The `scheduler` module provides a simple task scheduling mechanism based on
+ * system ticks. It supports periodic and one-time tasks, allowing users to schedule
+ * and execute functions at defined intervals.
+ *
+ * @section overview_scheduler Overview
+ * The scheduler manages a list of tasks, each associated with a specific function
+ * pointer and execution period. Tasks are executed by the `SchedulerRun()` method,
+ * which checks if they are due to run based on the system ticks. The module also
+ * provides utilities for managing task periods and timestamps.
+ *
+ * ### Key Features:
+ * - Add tasks with specified periods.
+ * - Run periodic or one-time tasks.
+ * - Measure CPU load and task execution delays (with debug mode enabled).
+ * - Provides APIs for custom timing checks and stamps.
+ *
+ * @section components Components
+ * This documentation explains the following:
+ * - **Data Structures**:
+ *   - `task_t`: Represents a scheduled task.
+ *   - `task_options_union_t`: Configures task options like repetition.
+ * - **Functions**:
+ *   - Scheduler initialization (`SchedulerInit()`).
+ *   - Adding tasks (`SchedulerAddTask()`).
+ *   - Running the scheduler (`SchedulerRun()`).
+ * - **Utilities**:
+ *   - Timing utilities like `SetTimerStamp()` and `CheckTimer()`.
+ *
+ * @section architecture Architecture
+ * The scheduler uses:
+ * - A static array (`task_array`) to store tasks.
+ * - A global tick counter (`g_sys_ticks_ms`) updated by the timer interrupt.
+ * - A periodic loop (`SchedulerRun()`) to evaluate and execute tasks.
+ *
+ *
+ * @section data_structures Data Structures
+ * 
+ * #### **`task_t`**
+ * - Stores information about each scheduled task, including:
+ *   - Function pointer (`task_fptr`).
+ *   - Task period and timestamp.
+ *   - Debug timing data (optional).
+ *
+ * #### **`task_options_union_t`**
+ * - Represents task configuration options:
+ *   - Repetition flag (`repetive_task`).
+ *
+ * @section functions Functions
+ * 
+ * #### **Initialization**
+ * - `void SchedulerInit(float cpu_freq, float tick_period)`
+ *   - Sets up the scheduler by configuring hardware timers and clearing tasks.
+ *
+ * #### **Adding Tasks**
+ * - `task_t* SchedulerAddTask(task_fnc_ptr_t fptr, uint32_t period)`
+ *   - Adds a task to the scheduler with a specified execution period.
+ *
+ * #### **Running Tasks**
+ * - `void SchedulerRun()`
+ *   - Main routine that executes tasks when due.
+ * 
+ * #### **Utilities**
+ * - `uint64_t SetTimerStamp(uint32_t len_ms)`
+ *   - Creates a future timestamp by adding a duration to the current tick count.
+ * - `uint16_t CheckTimer(uint64_t stamp)`
+ *   - Checks if a given timestamp has elapsed.
+ * - `void SchedulerSetTaskPeriod(task_t *task, uint32_t period)`
+ *   - Updates the period of a task and resets its timestamp.
+ *
+ * @section timing Timing Management
+ * The scheduler uses a 64-bit system tick counter (`g_sys_ticks_ms`) updated by the timer ISR:
+ * 
+ * #### Timer ISR (`SysTimerTask`)
+ * - Increments `g_sys_ticks_ms` on every tick.
+ * - Updates the CPU load tracker (`cpu_load_tmp`).
+ * 
+ * #### Task Timing
+ * - Each task has a `timestamp` indicating the last execution time and a `period` determining the interval.
+ * - A task is executed when:
+ *   - Current ticks (`g_sys_ticks_ms`) >= `timestamp + period`.
+ * 
+ * #### Debug Timing
+ * - If `DEBUG_TIMING` is enabled, task execution delays (`ts_delta`) and elapsed time (`elapsed_ns`) are recorded.
+ *
+ * @section usage Usage
+ * 
+ * #### Example: Scheduler Initialization
+ * @code
+ * SchedulerInit(200, 1000); // Initialize scheduler with CPU frequency 200 MHz and tick period 1000 μs
+ * @endcode
+ * 
+ * #### Example: Adding Tasks
+ * @code
+ * void MyTask(void) {
+ *     // Task code here
+ * }
+ * 
+ * task_t* my_task = SchedulerAddTask(MyTask, 100); // Execute every 100 ticks
+ * @endcode
+ * 
+ * #### Example: Running Scheduler
+ * @code
+ * while (1) {
+ *     SchedulerRun(); // Periodically called in the main loop
+ * }
+ * @endcode
+ *
+ * @section author_scheduler Author
+ * - **Author**: Martin Votava
+ * - **Date**: October 2024
+ */

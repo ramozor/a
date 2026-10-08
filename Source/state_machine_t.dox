@@ -1,0 +1,226 @@
+/**
+ * @file state_machine_t.dox
+ * @brief Detailed documentation for the `state_machine_t` class and associated components.
+ * @anchor state_machine_docs
+ * 
+ * @details
+ * The `state_machine_t` class manages the state transitions of the converter system, ensuring
+ * safe and smooth operation during state changes, handling errors, and coordinating tasks.
+ * This documentation explains the purpose and function of each component within the state machine.
+ *
+ * @section overview Overview
+ * The state machine transitions through various states, including:
+ * - **QAB_INIT**: Initial state, where the system is initialized.
+ * - **QAB_DISABLED**: Disabled state, ensuring no operations start prematurely.
+ * - **QAB_RESET**: Reset state for system re-initialization.
+ * - **QAB_ISO_TURN_ON**: Manages isolation switch activation.
+ * - **QAB_OPERATION**: Operating state, enabling full system functionality.
+ * - **QAB_TURN_OFF**: Turning-off the system, cells are off and isolation switches are on.
+ * - **QAB_ERROR**: Error state, halting operations to prevent damage.
+ *
+ * @image html State_machine.png "State Machine Flowchart" width=20%
+ *
+ * @section background_routines Background Routines
+ * The state machine employs background routines to execute tasks specific to the current state.
+ * Each operational state in the state machine has a corresponding **background routine** that defines
+ * the actions to be executed while the system remains in that state. Instead of using conditional
+ * logic to determine the current state's actions, the state machine leverages a **function pointer**
+ * (`background_routine_ptr`) to directly invoke the appropriate routine.
+ *
+ *
+ * Instead of using conditional logic (`if` or `switch`) to determine the current state's actions, 
+ * the state machine dynamically assigns a **function pointer** (`background_routine_ptr`) to the routine
+ * corresponding to the current state. This approach improves code modularity, readability, and performance.
+ * 
+ * ### Code Explanation
+ * The background routine execution is implemented in the following method:
+ * 
+ * @code
+ * void state_machine_t::background_routine()
+ * {
+ *     backround_routine_ptr(); // run specific background routine
+ * }
+ * @endcode
+ *
+ *
+ *
+ * @section states_description Individual States
+ * @brief Detailed description of the states in the `state_machine_t`.
+ * 
+ * The `state_machine_t` manages the following states to ensure safe and efficient
+ * operation of the converter system.
+ * 
+ * ### States Overview
+ *
+ * #### **1. `QAB_INIT` (Initialization State)**
+ * - **Purpose**: 
+ *   - This is the initial state where the system performs basic setup tasks to prepare for operation.
+ * - **Actions**:
+ *   - Initialize the state machine's function pointers, timers, and default configurations.
+ *   - Ensure that no unsafe conditions exist before transitioning to the next state.
+ * - **Transition**:
+ *   - The system transitions to the `QAB_DISABLED` state once initialization is complete.
+ *
+ * #### **2. `QAB_DISABLED` (Disabled State)**
+ * - **Purpose**:
+ *   - The system remains in a safe, non-operational state.
+ *   - Prevent any operations until explicitly allowed by an external trigger or safety checks.
+ * - **Actions**:
+ *   - Disable all PWM signals and output systems.
+ *   - Turn off all isolation switches to ensure no current flows.
+ *   - The corresponding background routine `background_routine_system_disabled` is assigned to the background routine pointer.
+ * - **Transition**:
+ *   - Transitions to `QAB_RESET` upon receiving a valid "start" command and confirming there are no errors.
+ *
+ * #### **3. `QAB_RESET` (Reset State)**
+ * - **Purpose**:
+ *   - Prepare the system for operation by performing necessary resets and clearing transient errors.
+ * - **Actions**:
+ *   - Turn on reset signals and ensure critical components are reset to a safe state.
+ *   - Perform a delay (e.g., 2 seconds) to stabilize the system before proceeding.
+ *   - The corresponding background routine `background_routine_system_in_reset` is assigned to the background routine pointer.
+ * - **Transition**:
+ *   - Three options: i)Upon the start command after completing the reset (wait for 2s), the system transitions to the `QAB_ISO_TURN_ON` state.
+ * ii)Any error appears, the system transitions to the `QAB_ERROR` state.
+ * iii)Upon the clear errors command after completing the reset (wait for 2s), the system transitions to the `QAB_DISABLED` state.
+ *
+ * #### **4. `QAB_ISO_TURN_ON` (Isolation Switch Turn-On State)**
+ * - **Purpose**:
+ *   - Activate isolation switches to prepare the system for operation.
+ * - **Actions**:
+ *   - Turn on all isolation switches to establish electrical pathways.
+ *   - PWMs remains disabled until the isolation switches are connected.
+ *   - The corresponding background routine, `background_routine_system_init_isolation_switches` is assigned to the background routine pointer.
+ * - **Transition**:
+ *   - After ensuring the isolation switches are properly activated (wait for 2s), the system transitions to `QAB_OPERATION`.
+ *
+ * #### **5. `QAB_OPERATION` (Operating State)**
+ * - **Purpose**:
+ *   - Enable the converter system to operate at full functionality.
+ * - **Actions**:
+ *   - Enable all PWM outputs to allow power flow through the system.
+ *   - The corresponding background routine `background_routine_system_operating` is assigned to the background routine pointer.
+ * - **Transition**:
+ *   - If an error occurs, the system transitions to `QAB_ERROR`.
+ *
+ * #### **6. `QAB_Turn_off` (Safe turn-off State)**
+ * - **Purpose**:
+ *   - Enable the converter system safe turn-off.
+ * - **Actions**:
+ *   - Disable all cell PWM outputs to suppress transformer magnetizing current.
+ *   - The corresponding background routine `background_routine_system_turn_off` is assigned to the background routine pointer.
+ * - **Transition**:
+ *   - After 2s, the system transitions to either `QAB_ERROR` or `QAB_DISABLED` based on whether any error occured.
+ *
+ * #### **7. `QAB_ERROR` (Error State)**
+ * - **Purpose**:
+ *   - Handle any critical system errors and ensure safe shutdown of operations.
+ * - **Actions**:
+ *   - Disable all PWM outputs and turn off isolation switches.
+ *   - The corresponding background routine, `background_routine_system_in_error` is assigned to the background routine pointer.
+ *   - Log the error for diagnostics and troubleshooting.
+ * - **Transition**:
+ *   - The system remains in `QAB_ERROR` until errors are cleared and reset signals are applied, transitioning to `QAB_RESET`.
+ *
+ * #### **7. `QAB_ERROR` (Error State)**
+ * - **Purpose**:
+ *   - Handle any critical system errors and ensure safe shutdown of operations.
+ * - **Actions**:
+ *   - Disable all PWM outputs and turn off isolation switches.
+ *   - The corresponding background routine, `background_routine_system_in_error` is assigned to the background routine pointer.
+ *   - Log the error for diagnostics and troubleshooting.
+ * - **Transition**:
+ *   - The system remains in `QAB_ERROR` until errors are cleared and reset signals are applied, transitioning to `QAB_RESET`.
+ *
+ * ### State Transition Table
+ * | **Current State**  | **Event**                        | **Next State**         |
+ * |---------------------|----------------------------------|-------------------------|
+ * | `QAB_INIT`          | Initialization Complete         | `QAB_DISABLED`         |
+ * | `QAB_DISABLED`      | Start Signal (No Errors)        | `QAB_RESET`            |
+ * | `QAB_DISABLED`      | Error Detected                  | `QAB_ERROR`            |
+ * | `QAB_RESET`         | Reset Complete                  | `QAB_ISO_TURN_ON`      |
+ * | `QAB_RESET`         | Error Detected                  | `QAB_ERROR`            |
+ * | `QAB_ISO_TURN_ON`   | Isolation Switches Activated    | `QAB_TURN_OFF`         |
+ * | `QAB_ISO_TURN_ON`   | Error Detected                  | `QAB_TURN_OFF`         |
+ * | `QAB_OPERATION`     | Stop Command                    | `QAB_TURN_OFF`         |
+ * | `QAB_OPERATION`     | Error Detected                  | `QAB_TURN_OFF`         |
+ * | `QAB_TURN_OFF`      | Ellapsed and no error           | `QAB_DISABLED`         |
+ * | `QAB_TURN_OFF`      | Ellapsed and errorS             | `QAB_ERROR`            |
+ * | `QAB_ERROR`         | Clear Error Command             | `QAB_RESET`            |
+ *
+ * @section timing_state_transitions Timing in State Transitions
+ * @brief Explanation of how timing is handled during state transitions in the `state_machine_t`.
+ *
+ *
+ *
+ * ### Overview
+ * In the `state_machine_t`, timing plays a critical role in ensuring that state transitions 
+ * happen in a controlled manner. The state machine uses a scheduled task mechanism 
+ * to introduce delays, allowing components to stabilize before moving to the next state.
+ *
+ * ### Mechanism
+ * The timing of state transitions is controlled by:
+ * 1. **Timed Task (`timing_task`)**:
+ *    - A static task pointer (`timing_task`) is used to schedule and execute functions after a defined delay.
+ *    - Tasks are scheduled using the `SchedulerAddTask` and `SchedulerSetTaskPeriod` methods.
+ *    - Each state that requires a delay assigns a function pointer to `timing_task->task_fptr` and specifies a delay period.
+ *
+ * 2. **State-Specific Functions**:
+ *    - States like `QAB_RESET` and `QAB_ISO_TURN_ON` require timed delays for actions like component resets and isolation switch activation.
+ *    - The next state transition function is scheduled using `timing_task`.
+ *
+ * ### Workflow
+ * Here's a step-by-step workflow for timing state transitions:
+ *
+ * #### Example: Transition from `QAB_RESET` to `QAB_ISO_TURN_ON`
+ * 1. **Set the Current State**:
+ *    The system state is set to `QAB_RESET` with the appropriate background routine:
+ *    @code
+ *    state.label = QAB_RESET;
+ *    backround_routine_ptr = &background_routine_system_in_reset;
+ *    @endcode
+ *
+ * 2. **Schedule the Next Transition**:
+ *    The next state transition function (`reset_to_init_isolation_switches`) is scheduled with a delay of 2 seconds:
+ *    @code
+ *    timing_task->task_fptr = &reset_to_init_isolation_switches;
+ *    SchedulerSetTaskPeriod(timing_task, 2000); // 2000 ms (2 seconds)
+ *    @endcode
+ *
+ * 3. **Wait for Timer Expiry**:
+ *    The `timing_task` ensures that `reset_to_init_isolation_switches` is called only after the 2-second delay.
+ *
+ * 4. **Execute the Transition**:
+ *    After 2 seconds, the scheduled function (`reset_to_init_isolation_switches`) is executed:
+ *    @code
+ *    void state_machine_t::reset_to_init_isolation_switches()
+ *    {
+ *        state.label = QAB_ISO_TURN_ON;
+ *        background_routine_system_init_isolation_switches();
+ *        // Schedule the next transition to QAB_OPERATION
+ *        timing_task->task_fptr = &init_isolation_switches_to_operating;
+ *        SchedulerSetTaskPeriod(timing_task, 2000); // Another 2-second delay
+ *    }
+ *    @endcode
+ *
+ * ### Advantages of Timed Transitions
+ * - **Component Stabilization**: Ensures that hardware components (e.g., isolation switches, PWMs) are fully operational before moving to the next state.
+ * - **Error Prevention**: Prevents premature state transitions that could lead to unsafe conditions.
+ * - **Flexibility**: Timed tasks make it easy to add or adjust delays for specific state transitions.
+ *
+ * ### State Transitions Requiring Timing
+ * The following state transitions in the `state_machine_t` employ timed delays:
+ * - **`QAB_RESET` to `QAB_ISO_TURN_ON`**:
+ *   A 2-second delay ensures reset stabilization before activating isolation switches.
+ * - **`QAB_ISO_TURN_ON` to `QAB_OPERATION`**:
+ *   Another 2-second delay allows the isolation switches to stabilize.
+ * - **`QAB_ERROR` to `QAB_RESET`**:
+ *   Timed delays ensure proper error clearing before the system resets.
+ *
+ * @note Timed transitions are implemented using the `timing_task` and `Scheduler` system.
+ *
+ * 
+ * @section author Author
+ * - **Author**: mvo
+ * - **Date**: October 2024
+ */
